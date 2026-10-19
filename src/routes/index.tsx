@@ -28,8 +28,8 @@ function App() {
   const [screen, setScreen] = useState<"home" | "new" | "done">("home");
   const [bets, setBets] = useState<Bet[]>(SEED);
   const [what, setWhat] = useState("");
-  const [stake, setStake] = useState(STAKES[0]);
-  const [friend, setFriend] = useState(FRIENDS[0]);
+  const [stake, setStake] = useState<string>(STAKES[0]!);
+  const [friend, setFriend] = useState<string>(FRIENDS[0]!);
 
   useEffect(() => {
     const s = localStorage.getItem("betje");
