@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792521635113,
+      "tag": "0000_betje_shared_invitations",
+      "breakpoints": true
+    }
+  ]
 }

@@ -14,13 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          id: string
+          player_name: string
+        }
+        Insert: {
+          id: string
+          player_name?: string
+        }
+        Update: {
+          id?: string
+          player_name?: string
+        }
+        Relationships: []
+      }
+      shared_bets: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          group_id: string | null
+          group_name: string | null
+          id: string
+          paid_at: string | null
+          recipient_id: string
+          recipient_name: string
+          resolved_at: string | null
+          sender_id: string
+          sender_name: string
+          stake: string
+          status: string
+          subject: string
+          tikkie_url: string | null
+          winner_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          paid_at?: string | null
+          recipient_id: string
+          recipient_name: string
+          resolved_at?: string | null
+          sender_id: string
+          sender_name: string
+          stake: string
+          status?: string
+          subject: string
+          tikkie_url?: string | null
+          winner_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          paid_at?: string | null
+          recipient_id?: string
+          recipient_name?: string
+          resolved_at?: string | null
+          sender_id?: string
+          sender_name?: string
+          stake?: string
+          status?: string
+          subject?: string
+          tikkie_url?: string | null
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_bets_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_bets_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      betje_find_player: {
+        Args: { p_name: string }
+        Returns: {
+          id: string
+          player_name: string
+        }[]
+      }
+      betje_invite: {
+        Args: {
+          p_group_id?: string
+          p_group_name?: string
+          p_recipient: string
+          p_stake: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      betje_money_stake: { Args: { p_stake: string }; Returns: boolean }
+      betje_payment: {
+        Args: { p_id: string; p_paid?: boolean; p_url?: string }
+        Returns: undefined
+      }
+      betje_resolve: {
+        Args: { p_id: string; p_won: boolean }
+        Returns: undefined
+      }
+      betje_respond: {
+        Args: { p_accept: boolean; p_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
