@@ -9,10 +9,22 @@ export type Bet = {
   resolvedAt?: number;
   paidAt?: number;
   tikkieUrl?: string;
+  shared?: boolean;
 };
 
 export type Group = { id: string; name: string; source: "WhatsApp" | "Snapchat"; members: string[] };
 export const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+export function isMoneyStake(stake: string): boolean {
+  const value = stake.replace(/[💶💵💷💴]/gu, "").trim();
+  return /^(?:[€$£]\s*\d+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?\s*(?:€|\$|£|euros?|eur|usd|gbp|dollars?|pond))$/i.test(value);
+}
+
+export type InvitationStatus = "pending" | "accepted" | "rejected";
+export function canRespond(status: string, recipientId: string, userId: string) {
+  return status === "pending" && recipientId === userId;
+}
+export function isDefinitive(status: string) { return status === "accepted"; }
 
 export function isOverdue(bet: Bet, now: number): boolean {
   if (bet.paidAt) return false;
