@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Deurwaarder, GroupImport, HallOfShame, TikkieActions } from "@/components/betje-extras";
+import { isOverdue, type Bet, type Group } from "@/lib/betje-extensions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,7 +18,6 @@ export const Route = createFileRoute("/")({
   component: App,
 });
 
-type Bet = { id: string; what: string; stake: string; friend: string; delta: number };
 const STAKES = ["🍺 1 Bier", "🚬 2 Cigs", "🥪 Kantinebroodje", "💶 €5"];
 const FRIENDS = ["Lennart", "Jurriaan", "Sanne", "Daan", "📣 De Groep"];
 const SEED: Bet[] = [
@@ -28,39 +30,59 @@ function App() {
   const [screen, setScreen] = useState<"home" | "new" | "done">("home");
   const [bets, setBets] = useState<Bet[]>(SEED);
   const [what, setWhat] = useState("");
-  const [stake, setStake] = useState<string>(STAKES[0]!);
-  const [friend, setFriend] = useState<string>(FRIENDS[0]!);
+  const [stake, setStake] = useState<string>(STAKES[0] ?? "🍺 1 Bier");
+  const [friend, setFriend] = useState<string>(FRIENDS[0] ?? "Lennart");
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [groupId, setGroupId] = useState("");
+  const [tab, setTab] = useState<"tab" | "shame">("tab");
+  const [now, setNow] = useState(0);
+  const activeGroup = groups.find(g => g.id === groupId);
 
   useEffect(() => {
-    const s = localStorage.getItem("betje");
-    if (s) setBets(JSON.parse(s));
+    try {
+      const s = localStorage.getItem("betje");
+      if (s) setBets(JSON.parse(s));
+      const g = localStorage.getItem("betje-groups");
+      if (g) setGroups(JSON.parse(g));
+    } catch { /* Keep the existing examples if local data is unreadable. */ }
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
   }, []);
   const save = (b: Bet[]) => { setBets(b); localStorage.setItem("betje", JSON.stringify(b)); };
 
   const send = () => {
     if (!what.trim()) return;
-    save([{ id: Date.now().toString(), what, stake, friend, delta: 0 }, ...bets]);
+    save([{ id: Date.now().toString(), what, stake, friend, delta: 0, createdAt: Date.now(), ...(groupId ? { groupId } : {}) }, ...bets]);
     setScreen("done");
   };
-  const settle = (id: string, delta: number) => save(bets.map((b) => (b.id === id ? { ...b, delta } : b)));
+  const settle = (id: string, delta: number) => save(bets.map((b) => (b.id === id ? { ...b, delta, resolvedAt: Date.now() } : b)));
+  const update = (id: string, patch: Partial<Bet>) => save(bets.map(b => b.id === id ? { ...b, ...patch } : b));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-5 pb-8 pt-6">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-4xl font-extrabold tracking-tight text-primary">betje<span className="text-ink">.</span></h1>
         {screen !== "home" && (
-          <button onClick={() => setScreen("home")} className="rounded-full bg-muted px-4 py-2 font-bold">✕</button>
+          <Button variant="ghost" aria-label="Sluiten" onClick={() => setScreen("home")} className="rounded-full bg-muted px-4 py-2 font-bold">✕</Button>
         )}
       </header>
 
       {screen === "home" && (
         <>
+          <div role="tablist" aria-label="Betje overzicht" className="mb-4 flex gap-1 rounded-full bg-muted p-1">
+            <Button role="tab" aria-selected={tab === "tab"} variant={tab === "tab" ? "default" : "ghost"} onClick={() => setTab("tab")} className="flex-1 rounded-full">Jouw tab</Button>
+            <Button role="tab" aria-selected={tab === "shame"} variant={tab === "shame" ? "default" : "ghost"} onClick={() => setTab("shame")} className="flex-1 rounded-full">🏆 Hall of Shame</Button>
+          </div>
+          {tab === "tab" ? <>
           <section className="rounded-3xl bg-ink p-5 text-ink-foreground">
             <p className="text-sm opacity-70">Jouw tab</p>
             <p className="text-3xl font-extrabold">
               {bets.filter((b) => b.delta > 0).length} gewonnen · {bets.filter((b) => b.delta < 0).length} verloren
             </p>
           </section>
+          <GroupImport groups={groups} onImport={g => { const next = [...groups, g]; setGroups(next); localStorage.setItem("betje-groups", JSON.stringify(next)); }} />
+          <Deurwaarder bets={bets} now={now} />
           <h2 className="mb-3 mt-6 text-lg font-bold">Wie heeft wat open?</h2>
           <ul className="flex flex-col gap-3">
             {bets.map((b) => (
@@ -72,20 +94,24 @@ function App() {
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">“{b.what}”</p>
+                {b.groupId && <p className="mt-1 text-xs font-bold text-primary">👥 {groups.find(g => g.id === b.groupId)?.name ?? "Groep"}</p>}
+                {isOverdue(b, now) && <p className="mt-1 text-xs font-bold text-danger">🚨 Langer dan 7 dagen open</p>}
                 {b.delta === 0 && (
                   <div className="mt-3 flex gap-2">
-                    <button onClick={() => settle(b.id, 1)} className="flex-1 rounded-xl bg-secondary py-2 text-sm font-bold">🏆 Gewonnen</button>
-                    <button onClick={() => settle(b.id, -1)} className="flex-1 rounded-xl bg-muted py-2 text-sm font-bold">😩 Verloren</button>
+                    <Button variant="secondary" onClick={() => settle(b.id, 1)} className="flex-1 rounded-xl bg-secondary py-2 text-sm font-bold">🏆 Gewonnen</Button>
+                    <Button variant="ghost" onClick={() => settle(b.id, -1)} className="flex-1 rounded-xl bg-muted py-2 text-sm font-bold">😩 Verloren</Button>
                   </div>
                 )}
+                <TikkieActions bet={b} onUpdate={patch => update(b.id, patch)} />
               </li>
             ))}
           </ul>
+          </> : <HallOfShame bets={bets} groups={groups} />}
           <div className="h-28" />
           <div className="fixed inset-x-0 bottom-6 mx-auto max-w-md px-5">
-            <button onClick={() => { setWhat(""); setScreen("new"); }} className="btn-pop w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
+            <Button onClick={() => { setWhat(""); setGroupId(""); setScreen("new"); }} className="btn-pop h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
               ⚡ Nieuw Betje
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -98,11 +124,13 @@ function App() {
               className="w-full rounded-2xl border-2 bg-card px-4 py-4 text-lg outline-none focus:border-primary" />
           </div>
           <Chips label="Inzet" items={STAKES} value={stake} onChange={setStake} />
-          <Chips label="Tegen wie?" items={FRIENDS.map((f) => (f.startsWith("📣") ? f : "@" + f))}
+          {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "Lennart"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
+          <Chips label={activeGroup ? "Vertegenwoordiger / tegenstander" : "Tegen wie?"} items={(activeGroup ? activeGroup.members : FRIENDS).map((f) => (f.startsWith("📣") ? f : "@" + f))}
             value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))} />
-          <button onClick={send} disabled={!what.trim()} className="btn-pop mt-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground disabled:opacity-50">
+          {activeGroup && <p className="text-xs text-muted-foreground">De uitslag en schuld tellen voor jou en de gekozen tegenstander, niet voor alle groepsleden.</p>}
+          <Button onClick={send} disabled={!what.trim()} className="btn-pop mt-auto h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground disabled:opacity-50">
             Verstuur Betje 🚀
-          </button>
+          </Button>
         </div>
       )}
 
@@ -111,7 +139,8 @@ function App() {
           <div className="animate-pop flex h-32 w-32 items-center justify-center rounded-full bg-primary text-6xl text-primary-foreground">✓</div>
           <h2 className="mt-6 text-3xl font-extrabold">Betje staat vast!</h2>
           <p className="mt-2 text-muted-foreground">{stake} tegen {friend} — “{what}”</p>
-          <button onClick={() => setScreen("home")} className="btn-pop mt-8 rounded-3xl bg-primary px-10 py-4 font-extrabold text-primary-foreground">Naar de tab</button>
+          {activeGroup && <p className="mt-2 text-sm font-bold text-primary">👥 {activeGroup.name}</p>}
+          <Button onClick={() => { setTab("tab"); setScreen("home"); }} className="btn-pop mt-8 h-auto rounded-3xl bg-primary px-10 py-4 font-extrabold text-primary-foreground">Naar de tab</Button>
           <div className="mt-auto w-full rounded-2xl border bg-card p-4 text-left text-sm">
             <span className="text-xs text-muted-foreground">Gesponsord</span>
             <p className="font-bold">Verliezer betaalt? Stuur direct een Tikkie 💸</p>
@@ -128,10 +157,10 @@ function Chips({ label, items, value, onChange }: { label: string; items: string
       <p className="mb-2 font-bold">{label}</p>
       <div className="flex flex-wrap gap-2">
         {items.map((i) => (
-          <button key={i} onClick={() => onChange(i)}
-            className={`rounded-full border-2 px-4 py-3 font-bold transition ${value === i ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
+          <Button variant="ghost" aria-pressed={value === i} key={i} onClick={() => onChange(i)}
+            className={`h-auto rounded-full border-2 px-4 py-3 font-bold transition ${value === i ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
             {i}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
