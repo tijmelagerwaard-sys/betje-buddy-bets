@@ -16,7 +16,9 @@ describe("Deurwaarder", () => {
     expect(isOverdue({ ...resolved, paidAt: 3000 }, 2001 + WEEK)).toBe(false);
   });
   it("does not invent an age for existing undated bets", () => {
-    expect(isOverdue({ ...bet, createdAt: undefined }, Date.now())).toBe(false);
+    const { createdAt, ...legacyBet } = bet;
+    expect(createdAt).toBe(1000);
+    expect(isOverdue(legacyBet, Date.now())).toBe(false);
   });
 });
 
