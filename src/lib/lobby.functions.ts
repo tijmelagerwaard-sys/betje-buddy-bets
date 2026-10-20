@@ -17,28 +17,28 @@ export const invitePlayer = createServerFn({ method: "POST" }).middleware([requi
     const player = await context.supabase.rpc("betje_find_player", { p_name: data.name });
     const recipient = player.data?.[0];
     if (player.error || !recipient) throw new Error("Geen tegenstander gevonden. Vraag je vriend om de exacte spelersnaam.");
-    const result = await context.supabase.rpc("betje_invite", { p_recipient: recipient.id, p_subject: data.what, p_stake: data.stake, p_group_id: data.groupId ?? null, p_group_name: data.groupName ?? null });
+    const result = await context.supabase.rpc("betje_invite", { p_recipient: recipient.id, p_subject: data.what, p_stake: data.stake, ...(data.groupId ? { p_group_id: data.groupId } : {}), ...(data.groupName ? { p_group_name: data.groupName } : {}) });
     if (result.error) throw new Error("Uitnodiging kon niet worden verstuurd.");
     return { id: result.data };
   });
 
 export const respondInvitation = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ id: z.uuid(), accept: z.boolean() })).handler(async ({ context, data }) => {
+  .inputValidator(z.object({ id: z.string().uuid(), accept: z.boolean() })).handler(async ({ context, data }) => {
     const result = await context.supabase.rpc("betje_respond", { p_id: data.id, p_accept: data.accept });
     if (result.error) throw new Error("Deze uitnodiging is niet meer beschikbaar.");
     return { ok: true };
   });
 
 export const resolveSharedBet = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ id: z.uuid(), won: z.boolean() })).handler(async ({ context, data }) => {
+  .inputValidator(z.object({ id: z.string().uuid(), won: z.boolean() })).handler(async ({ context, data }) => {
     const result = await context.supabase.rpc("betje_resolve", { p_id: data.id, p_won: data.won });
     if (result.error) throw new Error("Dit Betje is nog niet geaccepteerd of al beslist.");
     return { ok: true };
   });
 
 export const updateSharedPayment = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ id: z.uuid(), url: z.string().max(2000).optional(), paid: z.boolean().optional() })).handler(async ({ context, data }) => {
-    const result = await context.supabase.rpc("betje_payment", { p_id: data.id, p_url: data.url ?? null, p_paid: data.paid ?? false });
+  .inputValidator(z.object({ id: z.string().uuid(), url: z.string().max(2000).optional(), paid: z.boolean().optional() })).handler(async ({ context, data }) => {
+    const result = await context.supabase.rpc("betje_payment", { p_id: data.id, ...(data.url ? { p_url: data.url } : {}), p_paid: data.paid ?? false });
     if (result.error) throw new Error("Afhandeling kon niet worden opgeslagen.");
     return { ok: true };
   });
