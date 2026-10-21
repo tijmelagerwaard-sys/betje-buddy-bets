@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupRanking, isOverdue, validTikkieUrl, WEEK, type Bet, type Group } from "@/lib/betje-extensions";
+import { groupRanking, isMoneyStake, isOverdue, validTikkieUrl, WEEK, type Bet, type Group } from "@/lib/betje-extensions";
 
 const bet: Bet = { id: "1", what: "Ajax wint", friend: "Lennart", stake: "💶 €5", delta: 0, createdAt: 1000, groupId: "group" };
 const group: Group = { id: "group", name: "Vrienden", source: "WhatsApp", members: ["Lennart", "Sanne"] };
@@ -42,5 +42,14 @@ describe("Tikkie links", () => {
     expect(validTikkieUrl("https://tikkie.me.evil.example/pay/example")).toBe(false);
     expect(validTikkieUrl("http://tikkie.me/pay/example")).toBe(false);
     expect(validTikkieUrl("javascript:alert(1)")).toBe(false);
+  });
+  it("shows Tikkie actions only for money stakes", () => {
+    expect(isMoneyStake("💶 €5")).toBe(true);
+    expect(isMoneyStake("€10,50")).toBe(true);
+    expect(isMoneyStake("5 euro")).toBe(true);
+    expect(isMoneyStake("🍺 1 Bier")).toBe(false);
+    expect(isMoneyStake("🥪 Kantinebroodje")).toBe(false);
+    expect(isMoneyStake("🚬 2 Cigs")).toBe(false);
+    expect(isMoneyStake("een wasbeurt")).toBe(false);
   });
 });
