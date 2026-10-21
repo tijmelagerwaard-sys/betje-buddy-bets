@@ -88,10 +88,10 @@ function App() {
 
       {screen === "home" && (
         <>
-          <div role="tablist" aria-label="Betje overzicht" className="mb-4 flex gap-1 rounded-full bg-muted p-1">
-            <Button role="tab" aria-selected={tab === "tab"} variant={tab === "tab" ? "default" : "ghost"} onClick={() => setTab("tab")} className="flex-1 rounded-full">Jouw tab</Button>
-            <Button role="tab" aria-selected={tab === "shame"} variant={tab === "shame" ? "default" : "ghost"} onClick={() => setTab("shame")} className="flex-1 rounded-full">🏆 Hall of Shame</Button>
-            <Button role="tab" aria-selected={tab === "open"} variant={tab === "open" ? "default" : "ghost"} onClick={() => setTab("open")} className="flex-1 rounded-full">📬 Open Betjes</Button>
+          <div role="tablist" aria-label="Betje overzicht" className="mb-4 flex gap-1 overflow-hidden rounded-full bg-muted p-1">
+            <Button role="tab" aria-selected={tab === "tab"} variant={tab === "tab" ? "default" : "ghost"} onClick={() => setTab("tab")} className="min-w-0 flex-1 truncate rounded-full px-2 text-sm font-bold">Jouw tab</Button>
+            <Button role="tab" aria-selected={tab === "shame"} variant={tab === "shame" ? "default" : "ghost"} onClick={() => setTab("shame")} className="min-w-0 flex-1 truncate rounded-full px-2 text-sm font-bold">🏆 Hall of Shame</Button>
+            <Button role="tab" aria-selected={tab === "open"} variant={tab === "open" ? "default" : "ghost"} onClick={() => setTab("open")} className="min-w-0 flex-1 truncate rounded-full px-2 text-sm font-bold">📬 Open Betjes</Button>
           </div>
           {tab === "tab" ? <>
           <section className="rounded-3xl bg-ink p-5 text-ink-foreground">
