@@ -5,8 +5,8 @@
 - [x] Regels testen en bestaande plus nieuwe gebruikersflow controleren.
 
 # Open Betjes, eigen inzet en geldregel
-- [ ] Echte gedeelde uitnodigingen en spelersaccounts toevoegen zonder lokale bestaande bets te wijzigen.
-- [ ] Open Betjes met inkomend accepteren/afwijzen en Uitstaand toevoegen.
-- [ ] Eigen inzet en onderwerp ondersteunen; nieuwe bets pas vast na acceptatie.
-- [ ] Tikkie uitsluitend bij geldbedragen; overige inzetafhandeling behouden.
-- [ ] Regels en tweespeler-flow testen.
+- [x] Echte gedeelde uitnodigingen en spelersaccounts toevoegen zonder lokale bestaande bets te wijzigen.
+- [x] Open Betjes met inkomend accepteren/afwijzen en Uitstaand toevoegen.
+- [x] Eigen inzet en onderwerp ondersteunen; nieuwe bets pas vast na acceptatie.
+- [x] Tikkie uitsluitend bij geldbedragen; overige inzetafhandeling behouden.
+- [ ] Tweespeler-flow live testen — wacht op een e-mailbevestigd account (bevestigingsmail kan ik niet namens de gebruiker openen).
