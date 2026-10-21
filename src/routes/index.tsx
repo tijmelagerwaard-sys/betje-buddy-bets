@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Deurwaarder, GroupImport, HallOfShame, TikkieActions } from "@/components/betje-extras";
+import { OpenBetjes } from "@/components/open-betjes";
+import { useLobby } from "@/hooks/use-lobby";
+import { resolveSharedBet, updateSharedPayment } from "@/lib/lobby.functions";
 import { isOverdue, type Bet, type Group } from "@/lib/betje-extensions";
 
 export const Route = createFileRoute("/")({
@@ -34,9 +38,15 @@ function App() {
   const [friend, setFriend] = useState<string>(FRIENDS[0] ?? "Lennart");
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupId, setGroupId] = useState("");
-  const [tab, setTab] = useState<"tab" | "shame">("tab");
+  const [tab, setTab] = useState<"tab" | "shame" | "open">("tab");
   const [now, setNow] = useState(0);
+  const [customStake, setCustomStake] = useState("");
   const activeGroup = groups.find(g => g.id === groupId);
+  const lobby = useLobby();
+  const resolveShared = useServerFn(resolveSharedBet);
+  const payShared = useServerFn(updateSharedPayment);
+  const allBets = [...lobby.accepted, ...bets];
+  const effectiveStake = customStake.trim() || stake;
 
   useEffect(() => {
     try {
@@ -53,11 +63,19 @@ function App() {
 
   const send = () => {
     if (!what.trim()) return;
-    save([{ id: Date.now().toString(), what, stake, friend, delta: 0, createdAt: Date.now(), ...(groupId ? { groupId } : {}) }, ...bets]);
+    save([{ id: Date.now().toString(), what, stake: effectiveStake, friend, delta: 0, createdAt: Date.now(), ...(groupId ? { groupId } : {}) }, ...bets]);
     setScreen("done");
   };
-  const settle = (id: string, delta: number) => save(bets.map((b) => (b.id === id ? { ...b, delta, resolvedAt: Date.now() } : b)));
-  const update = (id: string, patch: Partial<Bet>) => save(bets.map(b => b.id === id ? { ...b, ...patch } : b));
+  const settle = (id: string, delta: number) => {
+    const target = allBets.find(b => b.id === id);
+    if (target?.shared) { void resolveShared({ data: { id, won: delta > 0 } }).then(() => lobby.refresh()); return; }
+    save(bets.map((b) => (b.id === id ? { ...b, delta, resolvedAt: Date.now() } : b)));
+  };
+  const update = (id: string, patch: Partial<Bet>) => {
+    const target = allBets.find(b => b.id === id);
+    if (target?.shared) { void payShared({ data: { id, ...(patch.tikkieUrl ? { url: patch.tikkieUrl } : {}), paid: Boolean(patch.paidAt) } }).then(() => lobby.refresh()); return; }
+    save(bets.map(b => b.id === id ? { ...b, ...patch } : b));
+  };
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-5 pb-8 pt-6">
@@ -73,6 +91,7 @@ function App() {
           <div role="tablist" aria-label="Betje overzicht" className="mb-4 flex gap-1 rounded-full bg-muted p-1">
             <Button role="tab" aria-selected={tab === "tab"} variant={tab === "tab" ? "default" : "ghost"} onClick={() => setTab("tab")} className="flex-1 rounded-full">Jouw tab</Button>
             <Button role="tab" aria-selected={tab === "shame"} variant={tab === "shame" ? "default" : "ghost"} onClick={() => setTab("shame")} className="flex-1 rounded-full">🏆 Hall of Shame</Button>
+            <Button role="tab" aria-selected={tab === "open"} variant={tab === "open" ? "default" : "ghost"} onClick={() => setTab("open")} className="flex-1 rounded-full">📬 Open Betjes</Button>
           </div>
           {tab === "tab" ? <>
           <section className="rounded-3xl bg-ink p-5 text-ink-foreground">
@@ -82,10 +101,10 @@ function App() {
             </p>
           </section>
           <GroupImport groups={groups} onImport={g => { const next = [...groups, g]; setGroups(next); localStorage.setItem("betje-groups", JSON.stringify(next)); }} />
-          <Deurwaarder bets={bets} now={now} />
+          <Deurwaarder bets={allBets} now={now} />
           <h2 className="mb-3 mt-6 text-lg font-bold">Wie heeft wat open?</h2>
           <ul className="flex flex-col gap-3">
-            {bets.map((b) => (
+            {allBets.map((b) => (
               <li key={b.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-bold">{b.friend}</span>
@@ -106,10 +125,10 @@ function App() {
               </li>
             ))}
           </ul>
-          </> : <HallOfShame bets={bets} groups={groups} />}
+          </> : tab === "shame" ? <HallOfShame bets={allBets} groups={groups} /> : <OpenBetjes lobby={lobby} />}
           <div className="h-28" />
           <div className="fixed inset-x-0 bottom-6 mx-auto max-w-md px-5">
-            <Button onClick={() => { setWhat(""); setGroupId(""); setScreen("new"); }} className="btn-pop h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
+            <Button onClick={() => { setWhat(""); setCustomStake(""); setGroupId(""); setScreen("new"); }} className="btn-pop h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
               ⚡ Nieuw Betje
             </Button>
           </div>
@@ -123,7 +142,12 @@ function App() {
             <input autoFocus value={what} onChange={(e) => setWhat(e.target.value)} placeholder="Jurriaan wordt afgewezen"
               className="w-full rounded-2xl border-2 bg-card px-4 py-4 text-lg outline-none focus:border-primary" />
           </div>
-          <Chips label="Inzet" items={STAKES} value={stake} onChange={setStake} />
+          <Chips label="Inzet" items={STAKES} value={stake} onChange={(v) => { setStake(v); setCustomStake(""); }} />
+          <div>
+            <label className="mb-2 block font-bold">Of typ je eigen inzet</label>
+            <input value={customStake} onChange={(e) => setCustomStake(e.target.value)} placeholder="Bijvoorbeeld: 💶 €10 of een wasbeurt"
+              className="w-full rounded-2xl border-2 bg-card px-4 py-4 text-lg outline-none focus:border-primary" />
+          </div>
           {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "Lennart"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
           <Chips label={activeGroup ? "Vertegenwoordiger / tegenstander" : "Tegen wie?"} items={(activeGroup ? activeGroup.members : FRIENDS).map((f) => (f.startsWith("📣") ? f : "@" + f))}
             value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))} />
@@ -138,7 +162,7 @@ function App() {
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="animate-pop flex h-32 w-32 items-center justify-center rounded-full bg-primary text-6xl text-primary-foreground">✓</div>
           <h2 className="mt-6 text-3xl font-extrabold">Betje staat vast!</h2>
-          <p className="mt-2 text-muted-foreground">{stake} tegen {friend} — “{what}”</p>
+          <p className="mt-2 text-muted-foreground">{effectiveStake} tegen {friend} — “{what}”</p>
           {activeGroup && <p className="mt-2 text-sm font-bold text-primary">👥 {activeGroup.name}</p>}
           <Button onClick={() => { setTab("tab"); setScreen("home"); }} className="btn-pop mt-8 h-auto rounded-3xl bg-primary px-10 py-4 font-extrabold text-primary-foreground">Naar de tab</Button>
           <div className="mt-auto w-full rounded-2xl border bg-card p-4 text-left text-sm">
