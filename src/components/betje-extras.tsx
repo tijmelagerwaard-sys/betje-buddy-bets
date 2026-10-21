@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BellRing, Check, ExternalLink, Import, Send, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { groupRanking, isOverdue, reminderText, shareMessage, validTikkieUrl, type Bet, type Group } from "@/lib/betje-extensions";
+import { groupRanking, isMoneyStake, isOverdue, reminderText, shareMessage, validTikkieUrl, type Bet, type Group } from "@/lib/betje-extensions";
 
 export function GroupImport({ groups, onImport }: { groups: Group[]; onImport: (group: Group) => void }) {
   const [source, setSource] = useState<Group["source"]>("WhatsApp");
@@ -28,6 +28,10 @@ export function TikkieActions({ bet, onUpdate }: { bet: Bet; onUpdate: (patch: P
   const [error, setError] = useState("");
   if (bet.delta === 0) return null;
   if (bet.paidAt) return <p className="mt-3 flex items-center gap-1 text-xs font-bold text-success"><Check className="size-4" /> Zelf als voldaan gemarkeerd</p>;
+  if (!isMoneyStake(bet.stake)) return <div className="mt-3 border-t pt-3">
+    <p className="mb-2 text-xs text-muted-foreground">Geen geldbedrag: reken onderling af, zonder Tikkie.</p>
+    <Button variant="ghost" className="h-auto w-full whitespace-normal text-success" onClick={() => onUpdate({ paidAt: Date.now() })}><Check /> Zelf als voldaan markeren</Button>
+  </div>;
   return <div className="mt-3 border-t pt-3">
     <Button variant="secondary" className="h-auto w-full whitespace-normal rounded-xl py-3 text-primary" onClick={() => setOpen(!open)}><Send /> {bet.delta > 0 ? "Stuur Tikkie naar verliezer(s)" : bet.tikkieUrl ? "Betaal via Tikkie" : "Vraag Tikkie op"}</Button>
     {open && <div className="mt-3 space-y-3">
