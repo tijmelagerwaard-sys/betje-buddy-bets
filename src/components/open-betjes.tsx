@@ -3,8 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlayerAccount, usePlayer } from "@/components/player-account";
-import { invitePlayer, respondInvitation } from "@/lib/lobby.functions";
-import { canRespond } from "@/lib/betje-extensions";
+import { claimLobbyBet, invitePlayer, respondInvitation } from "@/lib/lobby.functions";
+import { canRespond, isOpenLobby } from "@/lib/betje-extensions";
 import type { useLobby } from "@/hooks/use-lobby";
 
 export function OpenBetjes({ lobby }: { lobby: ReturnType<typeof useLobby> }) {
@@ -13,12 +13,13 @@ export function OpenBetjes({ lobby }: { lobby: ReturnType<typeof useLobby> }) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const respond = useServerFn(respondInvitation);
+  const claim = useServerFn(claimLobbyBet);
   const invite = useServerFn(invitePlayer);
   const [invName, setInvName] = useState("");
   const [invWhat, setInvWhat] = useState("");
   const [invStake, setInvStake] = useState("");
   const [invOpen, setInvOpen] = useState(false);
-  const incoming = lobby.rows.filter(b => b.recipient_id === user?.id && b.status === "pending");
+  const incoming = lobby.rows.filter(b => b.status === "pending" && user && (b.recipient_id === user.id || isOpenLobby(b.status, b.recipient_id, b.sender_id, user.id)));
   const outgoing = lobby.rows.filter(b => b.sender_id === user?.id && b.status !== "accepted");
   return <section>
     <h2 className="mb-3 text-2xl font-extrabold">Open Betjes</h2>
