@@ -8,6 +8,13 @@
       "when": 1792521635113,
       "tag": "0000_betje_shared_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792704671964,
+      "tag": "0001_betje_open_lobby",
+      "breakpoints": true
     }
   ]
 }

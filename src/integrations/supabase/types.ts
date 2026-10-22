@@ -37,7 +37,7 @@ export type Database = {
           group_name: string | null
           id: string
           paid_at: string | null
-          recipient_id: string
+          recipient_id: string | null
           recipient_name: string
           resolved_at: string | null
           sender_id: string
@@ -55,7 +55,7 @@ export type Database = {
           group_name?: string | null
           id?: string
           paid_at?: string | null
-          recipient_id: string
+          recipient_id?: string | null
           recipient_name: string
           resolved_at?: string | null
           sender_id: string
@@ -73,7 +73,7 @@ export type Database = {
           group_name?: string | null
           id?: string
           paid_at?: string | null
-          recipient_id?: string
+          recipient_id?: string | null
           recipient_name?: string
           resolved_at?: string | null
           sender_id?: string
@@ -106,6 +106,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      betje_claim: { Args: { p_id: string }; Returns: undefined }
       betje_find_player: {
         Args: { p_name: string }
         Returns: {
@@ -118,6 +119,15 @@ export type Database = {
           p_group_id?: string
           p_group_name?: string
           p_recipient: string
+          p_stake: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      betje_lobby_invite: {
+        Args: {
+          p_group_id?: string
+          p_group_name?: string
           p_stake: string
           p_subject: string
         }
