@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupRanking, isMoneyStake, isOverdue, validTikkieUrl, WEEK, type Bet, type Group } from "@/lib/betje-extensions";
+import { groupRanking, isMoneyStake, isOpenLobby, isOverdue, validTikkieUrl, WEEK, type Bet, type Group } from "@/lib/betje-extensions";
 
 const bet: Bet = { id: "1", what: "Ajax wint", friend: "Lennart", stake: "💶 €5", delta: 0, createdAt: 1000, groupId: "group" };
 const group: Group = { id: "group", name: "Vrienden", source: "WhatsApp", members: ["Lennart", "Sanne"] };
@@ -33,6 +33,15 @@ describe("Group ranking", () => {
     expect(rows.find(r => r.name === "Jij")).toMatchObject({ won: 2, losses: 1, debts: 0, winRate: 67 });
     expect(rows.find(r => r.name === "Lennart")).toMatchObject({ won: 1, losses: 1, debts: 1, winRate: 50 });
     expect(rows.find(r => r.name === "Sanne")).toMatchObject({ losses: 1, debts: 0 });
+  });
+});
+
+describe("Open Lobby", () => {
+  it("is claimable by others only while pending and unclaimed, never by the sender", () => {
+    expect(isOpenLobby("pending", null, "sender", "vriend")).toBe(true);
+    expect(isOpenLobby("pending", null, "sender", "sender")).toBe(false);
+    expect(isOpenLobby("pending", "vriend", "sender", "vriend")).toBe(false);
+    expect(isOpenLobby("accepted", null, "sender", "vriend")).toBe(false);
   });
 });
 
