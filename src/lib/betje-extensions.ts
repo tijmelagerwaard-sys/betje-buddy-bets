@@ -21,8 +21,11 @@ export function isMoneyStake(stake: string): boolean {
 }
 
 export type InvitationStatus = "pending" | "accepted" | "rejected";
-export function canRespond(status: string, recipientId: string, userId: string) {
+export function canRespond(status: string, recipientId: string | null, userId: string) {
   return status === "pending" && recipientId === userId;
+}
+export function isOpenLobby(status: string, recipientId: string | null, senderId: string, userId: string) {
+  return status === "pending" && recipientId === null && senderId !== userId;
 }
 export function isDefinitive(status: string) { return status === "accepted"; }
 
