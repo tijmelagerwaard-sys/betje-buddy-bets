@@ -13,4 +13,4 @@
 
 # Open Lobby
 - [x] Lobby-betjes: versturen naar iedereen vanuit Nieuw Betje, eerste acceptant wordt tegenstander.
-- [ ] Lobby-flow live testen met twee accounts — zelfde blokkade als tweespeler-flow.
+- [ ] Lobby claimen vanuit tweede account live testen — verzenden is geverifieerd; acceptatie door een ander account wacht op een tweede e-mailbevestigd account.
