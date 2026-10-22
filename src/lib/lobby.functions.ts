@@ -12,14 +12,28 @@ export const getLobby = createServerFn({ method: "POST" }).middleware([requireSu
 });
 
 export const invitePlayer = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ name: z.string().trim().min(2).max(60), what: z.string().trim().min(1).max(500), stake: z.string().trim().min(1).max(200), groupId: z.string().max(200).optional(), groupName: z.string().max(200).optional() }))
+  .inputValidator(z.object({ name: z.string().trim().max(60).optional(), what: z.string().trim().min(1).max(500), stake: z.string().trim().min(1).max(200), lobby: z.boolean().optional(), groupId: z.string().max(200).optional(), groupName: z.string().max(200).optional() }))
   .handler(async ({ context, data }) => {
+    const group = { ...(data.groupId ? { p_group_id: data.groupId } : {}), ...(data.groupName ? { p_group_name: data.groupName } : {}) };
+    if (data.lobby) {
+      const lobbyResult = await context.supabase.rpc("betje_lobby_invite", { p_subject: data.what, p_stake: data.stake, ...group });
+      if (lobbyResult.error) throw new Error("Uitdaging kon niet naar de Open Lobby worden gestuurd.");
+      return { id: lobbyResult.data };
+    }
+    if (!data.name || data.name.length < 2) throw new Error("Geen tegenstander gevonden. Vraag je vriend om de exacte spelersnaam.");
     const player = await context.supabase.rpc("betje_find_player", { p_name: data.name });
     const recipient = player.data?.[0];
     if (player.error || !recipient) throw new Error("Geen tegenstander gevonden. Vraag je vriend om de exacte spelersnaam.");
-    const result = await context.supabase.rpc("betje_invite", { p_recipient: recipient.id, p_subject: data.what, p_stake: data.stake, ...(data.groupId ? { p_group_id: data.groupId } : {}), ...(data.groupName ? { p_group_name: data.groupName } : {}) });
+    const result = await context.supabase.rpc("betje_invite", { p_recipient: recipient.id, p_subject: data.what, p_stake: data.stake, ...group });
     if (result.error) throw new Error("Uitnodiging kon niet worden verstuurd.");
     return { id: result.data };
+  });
+
+export const claimLobbyBet = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ id: z.string().uuid() })).handler(async ({ context, data }) => {
+    const result = await context.supabase.rpc("betje_claim", { p_id: data.id });
+    if (result.error) throw new Error("Deze uitdaging is al geclaimd of niet meer beschikbaar.");
+    return { ok: true };
   });
 
 export const respondInvitation = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])

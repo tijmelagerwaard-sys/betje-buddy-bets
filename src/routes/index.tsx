@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Deurwaarder, GroupImport, HallOfShame, TikkieActions } from "@/components/betje-extras";
 import { OpenBetjes } from "@/components/open-betjes";
 import { useLobby } from "@/hooks/use-lobby";
-import { resolveSharedBet, updateSharedPayment } from "@/lib/lobby.functions";
+import { invitePlayer, resolveSharedBet, updateSharedPayment } from "@/lib/lobby.functions";
 import { isOverdue, type Bet, type Group } from "@/lib/betje-extensions";
 
 export const Route = createFileRoute("/")({
@@ -45,6 +45,9 @@ function App() {
   const lobby = useLobby();
   const resolveShared = useServerFn(resolveSharedBet);
   const payShared = useServerFn(updateSharedPayment);
+  const invite = useServerFn(invitePlayer);
+  const [sendLobby, setSendLobby] = useState(false);
+  const [sendError, setSendError] = useState("");
   const allBets = [...lobby.accepted, ...bets];
   const effectiveStake = customStake.trim() || stake;
 
@@ -63,6 +66,13 @@ function App() {
 
   const send = () => {
     if (!what.trim()) return;
+    setSendError("");
+    if (sendLobby) {
+      void invite({ data: { what, stake: effectiveStake, lobby: true, ...(groupId ? { groupId, groupName: activeGroup?.name ?? "" } : {}) } })
+        .then(() => { void lobby.refresh(); setScreen("done"); })
+        .catch((e) => setSendError(e instanceof Error ? e.message : "Uitdaging kon niet naar de Open Lobby worden gestuurd."));
+      return;
+    }
     save([{ id: Date.now().toString(), what, stake: effectiveStake, friend, delta: 0, createdAt: Date.now(), ...(groupId ? { groupId } : {}) }, ...bets]);
     setScreen("done");
   };
@@ -128,7 +138,7 @@ function App() {
           </> : tab === "shame" ? <HallOfShame bets={allBets} groups={groups} /> : <OpenBetjes lobby={lobby} />}
           <div className="h-28" />
           <div className="fixed inset-x-0 bottom-6 mx-auto max-w-md px-5">
-            <Button onClick={() => { setWhat(""); setCustomStake(""); setGroupId(""); setScreen("new"); }} className="btn-pop h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
+            <Button onClick={() => { setWhat(""); setCustomStake(""); setGroupId(""); setSendLobby(false); setSendError(""); setScreen("new"); }} className="btn-pop h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground">
               ⚡ Nieuw Betje
             </Button>
           </div>
@@ -151,9 +161,15 @@ function App() {
           {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "Lennart"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
           <Chips label={activeGroup ? "Vertegenwoordiger / tegenstander" : "Tegen wie?"} items={(activeGroup ? activeGroup.members : FRIENDS).map((f) => (f.startsWith("📣") ? f : "@" + f))}
             value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))} />
-          {activeGroup && <p className="text-xs text-muted-foreground">De uitslag en schuld tellen voor jou en de gekozen tegenstander, niet voor alle groepsleden.</p>}
+          {activeGroup && !sendLobby && <p className="text-xs text-muted-foreground">De uitslag en schuld tellen voor jou en de gekozen tegenstander, niet voor alle groepsleden.</p>}
+          {lobby.data?.userId && <Button variant="ghost" aria-pressed={sendLobby} onClick={() => setSendLobby(!sendLobby)}
+            className={`h-auto w-full rounded-2xl border-2 px-4 py-4 font-bold transition ${sendLobby ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
+            🌐 Open Lobby — stuur naar al je vrienden
+          </Button>}
+          {sendLobby && <p className="text-xs text-muted-foreground">Iedereen ziet dit Betje bij Open Betjes. De eerste vriend die accepteert wordt je tegenstander.</p>}
+          {sendError && <p role="alert" className="text-sm text-danger">{sendError}</p>}
           <Button onClick={send} disabled={!what.trim()} className="btn-pop mt-auto h-auto w-full rounded-3xl bg-primary py-5 text-xl font-extrabold text-primary-foreground disabled:opacity-50">
-            Verstuur Betje 🚀
+            {sendLobby ? "Verstuur naar Open Lobby 🌐" : "Verstuur Betje 🚀"}
           </Button>
         </div>
       )}
@@ -162,7 +178,7 @@ function App() {
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <div className="animate-pop flex h-32 w-32 items-center justify-center rounded-full bg-primary text-6xl text-primary-foreground">✓</div>
           <h2 className="mt-6 text-3xl font-extrabold">Betje staat vast!</h2>
-          <p className="mt-2 text-muted-foreground">{effectiveStake} tegen {friend} — “{what}”</p>
+          <p className="mt-2 text-muted-foreground">{sendLobby ? `🌐 Naar de Open Lobby gestuurd — de eerste die accepteert is je tegenstander` : `${effectiveStake} tegen ${friend}`} — “{what}”</p>
           {activeGroup && <p className="mt-2 text-sm font-bold text-primary">👥 {activeGroup.name}</p>}
           <Button onClick={() => { setTab("tab"); setScreen("home"); }} className="btn-pop mt-8 h-auto rounded-3xl bg-primary px-10 py-4 font-extrabold text-primary-foreground">Naar de tab</Button>
           <div className="mt-auto w-full rounded-2xl border bg-card p-4 text-left text-sm">

@@ -10,3 +10,7 @@
 - [x] Eigen inzet en onderwerp ondersteunen; nieuwe bets pas vast na acceptatie.
 - [x] Tikkie uitsluitend bij geldbedragen; overige inzetafhandeling behouden.
 - [ ] Tweespeler-flow live testen — wacht op een e-mailbevestigd account (bevestigingsmail kan ik niet namens de gebruiker openen).
+
+# Open Lobby
+- [x] Lobby-betjes: versturen naar iedereen vanuit Nieuw Betje, eerste acceptant wordt tegenstander.
+- [ ] Lobby-flow live testen met twee accounts — zelfde blokkade als tweespeler-flow.
