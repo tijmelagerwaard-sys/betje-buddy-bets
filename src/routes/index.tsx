@@ -51,7 +51,13 @@ function App() {
   useEffect(() => {
     try {
       const s = localStorage.getItem("betje");
-      if (s) setBets(JSON.parse(s));
+      if (s) {
+        const DEMO = ["Ajax wint", "Jurriaan wordt afgewezen", "Eerst thuis"];
+        const parsed: Bet[] = JSON.parse(s);
+        const clean = parsed.filter(b => !(["1", "2", "3"].includes(b.id) && DEMO.includes(b.what)));
+        setBets(clean);
+        if (clean.length !== parsed.length) localStorage.setItem("betje", JSON.stringify(clean));
+      }
       const g = localStorage.getItem("betje-groups");
       if (g) setGroups(JSON.parse(g));
       const f = localStorage.getItem("betje-friends");
@@ -122,7 +128,10 @@ function App() {
                     {b.delta > 0 ? "+" : b.delta < 0 ? "−" : "⏳ "}{b.stake}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground">“{b.what}”</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">“{b.what}”</p>
+                  {!b.shared && <button type="button" aria-label="Betje verwijderen" onClick={() => { if (confirm("Dit betje verwijderen?")) save(bets.filter(x => x.id !== b.id)); }} className="text-sm text-muted-foreground hover:text-danger">🗑️</button>}
+                </div>
                 {b.groupId && <p className="mt-1 text-xs font-bold text-primary">👥 {groups.find(g => g.id === b.groupId)?.name ?? "Groep"}</p>}
                 {isOverdue(b, now) && <p className="mt-1 text-xs font-bold text-danger">🚨 Langer dan 7 dagen open</p>}
                 {b.delta === 0 && (
@@ -160,7 +169,8 @@ function App() {
           </div>
           {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "📣 De Groep"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
           <Chips label={activeGroup ? "Vertegenwoordiger / tegenstander" : "Tegen wie?"} items={(activeGroup ? activeGroup.members : FRIENDS).map((f) => (f.startsWith("📣") ? f : "@" + f))}
-            value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))} />
+            value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))}
+            {...(!activeGroup ? { onRemove: (v: string) => { const n = v.replace(/^@/, ""); const next = FRIENDS.filter(f => f !== n); setFriends(next); localStorage.setItem("betje-friends", JSON.stringify(next)); if (friend === n) setFriend(next[0] ?? "📣 De Groep"); } } : {})} />
           {!activeGroup && <form className="flex gap-2" onSubmit={e => { e.preventDefault(); const n = newFriend.trim().replace(/^@/, ""); if (!n) return; const next = FRIENDS.includes(n) ? FRIENDS : [n, ...FRIENDS]; setFriends(next); localStorage.setItem("betje-friends", JSON.stringify(next)); setFriend(n); setNewFriend(""); }}>
             <input value={newFriend} onChange={e => setNewFriend(e.target.value)} placeholder="➕ Vriend toevoegen" maxLength={40}
               className="min-w-0 flex-1 rounded-2xl border-2 bg-card px-4 py-3 outline-none focus:border-primary" />
@@ -196,7 +206,7 @@ function App() {
   );
 }
 
-function Chips({ label, items, value, onChange }: { label: string; items: string[]; value: string; onChange: (v: string) => void }) {
+function Chips({ label, items, value, onChange, onRemove }: { label: string; items: string[]; value: string; onChange: (v: string) => void; onRemove?: (v: string) => void }) {
   return (
     <div>
       <p className="mb-2 font-bold">{label}</p>
@@ -205,6 +215,7 @@ function Chips({ label, items, value, onChange }: { label: string; items: string
           <Button variant="ghost" aria-pressed={value === i} key={i} onClick={() => onChange(i)}
             className={`h-auto rounded-full border-2 px-4 py-3 font-bold transition ${value === i ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
             {i}
+            {onRemove && !i.startsWith("📣") && <span role="button" aria-label={`${i} verwijderen`} onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="ml-1 opacity-60 hover:opacity-100">✕</span>}
           </Button>
         ))}
       </div>
