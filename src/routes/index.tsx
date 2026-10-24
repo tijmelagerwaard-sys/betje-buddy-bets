@@ -206,7 +206,7 @@ function App() {
   );
 }
 
-function Chips({ label, items, value, onChange }: { label: string; items: string[]; value: string; onChange: (v: string) => void }) {
+function Chips({ label, items, value, onChange, onRemove }: { label: string; items: string[]; value: string; onChange: (v: string) => void; onRemove?: (v: string) => void }) {
   return (
     <div>
       <p className="mb-2 font-bold">{label}</p>
@@ -215,6 +215,7 @@ function Chips({ label, items, value, onChange }: { label: string; items: string
           <Button variant="ghost" aria-pressed={value === i} key={i} onClick={() => onChange(i)}
             className={`h-auto rounded-full border-2 px-4 py-3 font-bold transition ${value === i ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
             {i}
+            {onRemove && !i.startsWith("📣") && <span role="button" aria-label={`${i} verwijderen`} onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="ml-1 opacity-60 hover:opacity-100">✕</span>}
           </Button>
         ))}
       </div>
