@@ -112,6 +112,7 @@ function App() {
           <GroupImport groups={groups} onImport={g => { const next = [...groups, g]; setGroups(next); localStorage.setItem("betje-groups", JSON.stringify(next)); }} />
           <Deurwaarder bets={allBets} now={now} />
           <h2 className="mb-3 mt-6 text-lg font-bold">Wie heeft wat open?</h2>
+          {allBets.length === 0 && <p className="rounded-2xl border bg-card p-5 text-center text-muted-foreground">Nog geen betjes. Tik op ⚡ Nieuw Betje om je eerste weddenschap te starten!</p>}
           <ul className="flex flex-col gap-3">
             {allBets.map((b) => (
               <li key={b.id} className="rounded-2xl border bg-card p-4">
@@ -157,9 +158,14 @@ function App() {
             <input value={customStake} onChange={(e) => setCustomStake(e.target.value)} placeholder="Bijvoorbeeld: 💶 €10 of een wasbeurt"
               className="w-full rounded-2xl border-2 bg-card px-4 py-4 text-lg outline-none focus:border-primary" />
           </div>
-          {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "Lennart"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
+          {groups.length > 0 && <label className="block font-bold">Koppel aan groep<select value={groupId} onChange={e => { setGroupId(e.target.value); const g = groups.find(g => g.id === e.target.value); setFriend(g?.members[0] ?? FRIENDS[0] ?? "📣 De Groep"); }} className="mt-2 w-full rounded-2xl border-2 bg-card p-4"><option value="">Geen groep</option>{groups.map(g => <option key={g.id} value={g.id}>{g.name} · {g.source}</option>)}</select></label>}
           <Chips label={activeGroup ? "Vertegenwoordiger / tegenstander" : "Tegen wie?"} items={(activeGroup ? activeGroup.members : FRIENDS).map((f) => (f.startsWith("📣") ? f : "@" + f))}
             value={friend.startsWith("📣") ? friend : "@" + friend} onChange={(v) => setFriend(v.replace("@", ""))} />
+          {!activeGroup && <form className="flex gap-2" onSubmit={e => { e.preventDefault(); const n = newFriend.trim().replace(/^@/, ""); if (!n) return; const next = FRIENDS.includes(n) ? FRIENDS : [n, ...FRIENDS]; setFriends(next); localStorage.setItem("betje-friends", JSON.stringify(next)); setFriend(n); setNewFriend(""); }}>
+            <input value={newFriend} onChange={e => setNewFriend(e.target.value)} placeholder="➕ Vriend toevoegen" maxLength={40}
+              className="min-w-0 flex-1 rounded-2xl border-2 bg-card px-4 py-3 outline-none focus:border-primary" />
+            <Button type="submit" disabled={!newFriend.trim()} className="h-auto rounded-2xl px-4 font-bold">Toevoegen</Button>
+          </form>}
           {activeGroup && !sendLobby && <p className="text-xs text-muted-foreground">De uitslag en schuld tellen voor jou en de gekozen tegenstander, niet voor alle groepsleden.</p>}
           {lobby.data?.userId && <Button variant="ghost" aria-pressed={sendLobby} onClick={() => setSendLobby(!sendLobby)}
             className={`h-auto w-full rounded-2xl border-2 px-4 py-4 font-bold transition ${sendLobby ? "border-primary bg-primary text-primary-foreground" : "bg-card"}`}>
