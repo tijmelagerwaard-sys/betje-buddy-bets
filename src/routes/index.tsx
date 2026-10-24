@@ -23,19 +23,16 @@ export const Route = createFileRoute("/")({
 });
 
 const STAKES = ["🍺 1 Bier", "🚬 2 Cigs", "🥪 Kantinebroodje", "💶 €5"];
-const FRIENDS = ["Lennart", "Jurriaan", "Sanne", "Daan", "📣 De Groep"];
-const SEED: Bet[] = [
-  { id: "1", what: "Ajax wint", stake: "🍺 2 Biertjes", friend: "Lennart", delta: 1 },
-  { id: "2", what: "Jurriaan wordt afgewezen", stake: "🥪 1 Broodje", friend: "Jurriaan", delta: -1 },
-  { id: "3", what: "Eerst thuis", stake: "💶 €5", friend: "Sanne", delta: 1 },
-];
+const DEFAULT_FRIENDS = ["📣 De Groep"];
 
 function App() {
   const [screen, setScreen] = useState<"home" | "new" | "done">("home");
-  const [bets, setBets] = useState<Bet[]>(SEED);
+  const [bets, setBets] = useState<Bet[]>([]);
   const [what, setWhat] = useState("");
   const [stake, setStake] = useState<string>(STAKES[0] ?? "🍺 1 Bier");
-  const [friend, setFriend] = useState<string>(FRIENDS[0] ?? "Lennart");
+  const [FRIENDS, setFriends] = useState<string[]>(DEFAULT_FRIENDS);
+  const [newFriend, setNewFriend] = useState("");
+  const [friend, setFriend] = useState<string>(DEFAULT_FRIENDS[0] ?? "📣 De Groep");
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupId, setGroupId] = useState("");
   const [tab, setTab] = useState<"tab" | "shame" | "open">("tab");
@@ -57,6 +54,8 @@ function App() {
       if (s) setBets(JSON.parse(s));
       const g = localStorage.getItem("betje-groups");
       if (g) setGroups(JSON.parse(g));
+      const f = localStorage.getItem("betje-friends");
+      if (f) setFriends(JSON.parse(f));
     } catch { /* Keep the existing examples if local data is unreadable. */ }
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
